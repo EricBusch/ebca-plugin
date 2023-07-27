@@ -57,3 +57,42 @@ function busch_get_homepage_background_image_ids(): array {
 
 	return $ids;
 }
+
+/**
+ * Add custom WordPress Admin Area CSS Styles.
+ */
+add_action( 'admin_head', function () {
+	echo '<style>
+	#busch-acf-collection-images .acf-relationship .list {height:850px;}
+	#busch-acf-collection-images .acf-relationship .list .acf-rel-item {display:flex;}	
+	#busch-acf-collection-images .acf-relationship .list .acf-rel-item .thumbnail {width:75px;height:75px;}	
+	#busch-acf-collection-images .acf-relationship .list .acf-rel-item .thumbnail img {max-width:75px;max-height:75px;}
+</style>';
+} );
+
+/**
+ * Return an array of WP_Post objects for post_type "collection".
+ *
+ * @return WP_Post[]
+ */
+function busch_get_collections(): array {
+	return get_posts( [
+		'post_type'        => 'collection',
+		'orderby'          => 'modified',
+		'order'            => 'DESC',
+		'numberposts'      => 99,
+		'suppress_filters' => true,
+		'post_status'      => is_user_logged_in() ? 'any' : 'publish',
+	] );
+}
+
+/**
+ * Return the number of images a Collection contains.
+ *
+ * @param int $post_id
+ *
+ * @return int
+ */
+function busch_get_image_count_for_collection( int $post_id ): int {
+	return count( get_field( 'images', $post_id, false ) );
+}

@@ -65,7 +65,7 @@ add_action( 'admin_head', function () {
 	echo '<style>
 	#busch-acf-collection-images .acf-relationship .list {height:850px;}
 	#busch-acf-collection-images .acf-relationship .list .acf-rel-item {display:flex;}	
-	#busch-acf-collection-images .acf-relationship .list .acf-rel-item .thumbnail {width:75px;height:75px;}	
+	#busch-acf-collection-images .acf-relationship .list .acf-rel-item .thumbnail {width:75px;height:75px;background:white;}	
 	#busch-acf-collection-images .acf-relationship .list .acf-rel-item .thumbnail img {max-width:75px;max-height:75px;}
 </style>';
 } );
@@ -195,8 +195,6 @@ function busch_get_collection_images( int $post_id, string $size = 'full', $attr
 		}
 
 
-
-
 //		if ( in_array( $image->_orientation, [ 'landscape', 'square' ] ) ) {
 //			$images[ $key ]->_colspan = 2;
 //		} else {
@@ -255,3 +253,25 @@ function busch_get_attachments( array $ids = [], string $size = 'full', $attr = 
 
 	return $images;
 }
+
+add_filter( 'acf/fields/relationship/result', function ( $title, $post, $field, $post_id ) {
+
+	$med_img_src = wp_get_attachment_image_url( $post->ID, 'medium' );
+	$thm_img_src = wp_get_attachment_image_url( $post->ID );
+
+	$title = str_replace(
+		[
+			$thm_img_src,
+			'</div>'.$post->post_title,
+		],
+		[
+			$med_img_src,
+			'</div><span>' . $post->post_title . '</span>',
+		],
+		$title
+	);
+
+	return $title;
+
+}, 10, 4 );
+

@@ -139,17 +139,36 @@ function busch_get_new_image_ids_for_collection( int $post_id, int $days = 30 ):
 	return $new_image_ids;
 }
 
-function busch_get_collection_images( int $post_id, string $size = 'full', $attr = '' ): array {
-
-	$image_ids = get_field( 'images', $post_id, false );
-
-	$images = get_posts( [
-		'post__in'       => $image_ids,
+/**
+ * Return an array of images for a given Collection.
+ *
+ * @param int $post_id Collection ID.
+ *
+ * @return WP_Post[]
+ */
+function busch_get_collection_images( int $post_id ): array {
+	return get_posts( [
+		'post__in'       => get_field( 'images', $post_id, false ),
 		'post_type'      => 'attachment',
 		'post_mime_type' => 'image',
 		'posts_per_page' => 99,
 		'orderby'        => 'post__in'
 	] );
+}
+
+/**
+ * Returns an array of images (as WP_Post objects) but with some additional properties
+ * available to make formatting in template easier.
+ *
+ * @param int $post_id Collection ID
+ * @param string $size Optional. Size to display (though <img> tag will use srcset)
+ * @param mixed $attr Optional. Additional attributes to pass into wp_get_attachment_image().
+ *
+ * @return WP_Post[]
+ */
+function busch_get_formatted_images_for_collection( int $post_id, string $size = 'full', $attr = '' ): array {
+
+	$images = busch_get_collection_images( $post_id );
 
 	$total_images = count( $images );
 
@@ -175,6 +194,7 @@ function busch_get_collection_images( int $post_id, string $size = 'full', $attr
 		$images[ $key ]->_next_orientation = null;
 	}
 
+	// Set previous and next image orientation.
 	foreach ( $images as $key => $image ) {
 		$next_key = $key < ( $total_images - 1 ) ? $key + 1 : 0;
 		$prev_key = $key === 0 ? $total_images - 1 : $key - 1;
@@ -183,86 +203,30 @@ function busch_get_collection_images( int $post_id, string $size = 'full', $attr
 		$images[ $key ]->_next_orientation = $images[ $next_key ]->_orientation;
 	}
 
-	$cols        = 0;
-	$max_per_row = 2;
-
-	foreach ( $images as $key => $image ) {
-
-		if ( in_array( $image->_orientation, [ 'landscape', 'square' ] ) ) {
-			$cols += 2;
-		} else {
-			$cols += 1;
-		}
-
-
-//		if ( in_array( $image->_orientation, [ 'landscape', 'square' ] ) ) {
-//			$images[ $key ]->_colspan = 2;
-//		} else {
-//			if ( $image->_next_orientation !== 'portrait' ) {
-//				if ( $image->_prev_orientation !== 'portrait' ) {
-//					$images[ $key ]->_colspan = 2;
-//				} else {
-//					$images[ $key ]->_colspan = 1;
-//				}
-//			}
-//		}
-
-
-		continue;
-//		$images[ $key ]->_colspan = $value;
-//
-//		if ($value === $max_per_row) {
-//			$value = 0;
-//		}
-//
-
-
-		// The rest of these conditionals only apply to "portrait"
-
-		if ( $image->_next_orientation === 'portrait' ) {
-			$images[ $key ]->_cols = 2;
-		}
-
-		if ( $image->_prev_orientation === 'portrait' && $image->_next_orientation !== 'portrait' ) {
-			$images[ $key ]->_cols = 2;
-		}
-
-
-//		if ( $image->_last ) {
-//			$images[ $key ]->_cols = 2;
-//		}
-
-	}
-
 	return $images;
 }
 
-function busch_get_attachments( array $ids = [], string $size = 'full', $attr = '' ): array {
+/**
+ * This changes the relationship field for Collections.
+ *
+ * It changes the image from "thumbnail" to "medium".
+ * It also wraps the image title in a <span> so that it can be styled via flex.
+ */
+add_filter( 'acf/fields/relationship/result', function ( string $title, WP_Post $post, array $field, int $post_id ) {
 
-	$images = get_posts( [
-		'post__in'       => $ids,
-		'post_type'      => 'attachment',
-		'post_mime_type' => 'image',
-		'posts_per_page' => 99,
-		'orderby'        => 'post__in',
-	] );
+	$post_type = get_post_type( $post_id );
 
-	foreach ( $images as $key => $image ) {
-		$images[ $key ]->img_html = wp_get_attachment_image( $image->ID, $size, $attr );
+	if ( $post_type !== 'collection' ) {
+		return $title;
 	}
-
-	return $images;
-}
-
-add_filter( 'acf/fields/relationship/result', function ( $title, $post, $field, $post_id ) {
 
 	$med_img_src = wp_get_attachment_image_url( $post->ID, 'medium' );
 	$thm_img_src = wp_get_attachment_image_url( $post->ID );
 
-	$title = str_replace(
+	return str_replace(
 		[
 			$thm_img_src,
-			'</div>'.$post->post_title,
+			'</div>' . $post->post_title,
 		],
 		[
 			$med_img_src,
@@ -270,8 +234,6 @@ add_filter( 'acf/fields/relationship/result', function ( $title, $post, $field, 
 		],
 		$title
 	);
-
-	return $title;
 
 }, 10, 4 );
 

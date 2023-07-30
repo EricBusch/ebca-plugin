@@ -3,11 +3,26 @@
  * Plugin Name: EricBusch.ca Plugin
  * Plugin URI: https://ericbusch.ca/
  * Description: My custom plugin
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Eric Busch
  * Author URI: https://ericbusch.ca/
  * Text Domain: busch
  */
+
+defined( 'ABSPATH' ) || exit;
+
+const BUSCH_VERSION = '1.0.1';
+
+define( 'BUSCH_URL', plugin_dir_url( __FILE__ ) ); // https://example.com/wp-content/plugins/eb/
+define( 'BUSCH_PATH', plugin_dir_path( __FILE__ ) ); // /absolute/path/to/wp-content/plugins/eb/
+
+/**
+ * Enqueue Lightbox Scripts
+ */
+add_action( 'wp_enqueue_scripts', function () {
+	wp_enqueue_script( 'fslb-js', BUSCH_URL . 'js/fslightbox/fslightbox.js', [], BUSCH_VERSION, true );
+	wp_enqueue_script( 'busch-fslb-js', BUSCH_URL . 'js/fslightbox/custom.js', [ 'fslb-js' ], BUSCH_VERSION, true );
+} );
 
 /**
  * Enable ACF Options page.
@@ -75,14 +90,14 @@ add_action( 'admin_head', function () {
  *
  * @return WP_Post[]
  */
-function busch_get_collections(): array {
+function busch_get_collections( array $overrides = [] ): array {
 	return get_posts( [
 		'post_type'        => 'collection',
-		'orderby'          => 'modified',
-		'order'            => 'DESC',
-		'numberposts'      => 99,
 		'suppress_filters' => true,
-		'post_status'      => is_user_logged_in() ? 'any' : 'publish',
+		'orderby'          => $overrides['orderby'] ?? 'modified',
+		'order'            => $overrides['order'] ?? 'DESC',
+		'numberposts'      => $overrides['numberposts'] ?? 99,
+		'post_status'      => $overrides['post_status'] ?? ( is_user_logged_in() ? 'any' : 'publish' ),
 	] );
 }
 
@@ -166,7 +181,7 @@ function busch_get_collection_images( int $post_id ): array {
  *
  * @return WP_Post[]
  */
-function busch_get_formatted_images_for_collection( int $post_id, string $size = 'full', $attr = '' ): array {
+function busch_get_formatted_images_for_collection( int $post_id, string $size = '2048x2048', $attr = '' ): array {
 
 	$images = busch_get_collection_images( $post_id );
 
@@ -190,6 +205,7 @@ function busch_get_formatted_images_for_collection( int $post_id, string $size =
 		$images[ $key ]->_first            = $key === 0;
 		$images[ $key ]->_last             = $key === ( $total_images - 1 );
 		$images[ $key ]->_orientation      = $orientation;
+		$images[ $key ]->_lightbox         = wp_get_attachment_image_url( $image->ID, '2048x2048' );
 		$images[ $key ]->_prev_orientation = null;
 		$images[ $key ]->_next_orientation = null;
 	}
@@ -237,3 +253,82 @@ add_filter( 'acf/fields/relationship/result', function ( string $title, WP_Post 
 
 }, 10, 4 );
 
+
+/**
+ * Get the next object in a set of objects.
+ *
+ * @param WP_Post[] $objects An array of WP_Post objects.
+ * @param int $current_object_id The ID of the current object that we will base the "next" object off of.
+ *
+ * @return WP_Post|null The next WP_Post or null if none found.
+ */
+function busch_get_next_object( array $objects, int $current_object_id ): ?WP_Post {
+
+	if ( empty( $objects ) ) {
+		return null;
+	}
+
+	$count = count( $objects );
+
+	foreach ( $objects as $key => $object ) {
+		if ( $object->ID === $current_object_id ) {
+			return $objects[ $key + 1 ] ?? $objects[0];
+		}
+	}
+
+	return $objects[ $count - 1 ];
+}
+
+/**
+ * Get the previous object in a set of objects.
+ *
+ * @param array $objects
+ * @param int $current_object_id
+ *
+ * @return WP_Post|null
+ */
+function busch_get_prev_object( array $objects, int $current_object_id ): ?WP_Post {
+
+	if ( empty( $objects ) ) {
+		return null;
+	}
+
+	$count = count( $objects );
+
+	foreach ( $objects as $key => $object ) {
+		if ( $object->ID === $current_object_id ) {
+			$index = $key - 1;
+			$index = $index < 0 ? $count - 1 : $index;
+
+			return $objects[ $index ];
+		}
+	}
+
+	return $objects[0];
+}
+
+/**
+ * Get previous collection.
+ *
+ * @param int $current_collection_id Current Collection ID.
+ *
+ * @return WP_Post|null
+ */
+function busch_get_prev_collection( int $current_collection_id ): ?WP_Post {
+	$treatments = busch_get_collections();
+
+	return busch_get_prev_object( $treatments, $current_collection_id );
+}
+
+/**
+ * Get next collection.
+ *
+ * @param int $current_collection_id Current Collection ID.
+ *
+ * @return WP_Post|null
+ */
+function busch_get_next_collection( int $current_collection_id ): ?WP_Post {
+	$treatments = busch_get_collections();
+
+	return busch_get_next_object( $treatments, $current_collection_id );
+}

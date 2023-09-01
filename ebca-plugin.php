@@ -1,20 +1,18 @@
 <?php
 /**
- * Plugin Name: EricBusch.ca Plugin
- * Plugin URI: https://ericbusch.ca/
+ * Plugin Name: EBCA Plugin
  * Description: My custom plugin
- * Version: 1.0.1
- * Author: Eric Busch
- * Author URI: https://ericbusch.ca/
+ * Version: 1.0.2
+ * Author: eb
  * Text Domain: busch
  */
 
 defined( 'ABSPATH' ) || exit;
 
-const BUSCH_VERSION = '1.0.1';
+const BUSCH_VERSION = '1.0.2';
 
-define( 'BUSCH_URL', plugin_dir_url( __FILE__ ) ); // https://example.com/wp-content/plugins/eb/
-define( 'BUSCH_PATH', plugin_dir_path( __FILE__ ) ); // /absolute/path/to/wp-content/plugins/eb/
+define( 'BUSCH_URL', plugin_dir_url( __FILE__ ) ); // https://example.com/wp-content/plugins/ebca-plugin/
+define( 'BUSCH_PATH', plugin_dir_path( __FILE__ ) ); // /absolute/path/to/wp-content/plugins/ebca-plugin/
 
 /**
  * Enqueue Lightbox Scripts

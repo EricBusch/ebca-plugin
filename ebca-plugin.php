@@ -2,17 +2,27 @@
 /**
  * Plugin Name: EBCA Plugin
  * Description: My custom plugin
- * Version: 1.0.2
+ * Version: 1.0.3
  * Author: eb
  * Text Domain: busch
  */
 
 defined( 'ABSPATH' ) || exit;
 
-const BUSCH_VERSION = '1.0.2';
+const BUSCH_VERSION = '1.0.3';
 
 define( 'BUSCH_URL', plugin_dir_url( __FILE__ ) ); // https://example.com/wp-content/plugins/ebca-plugin/
 define( 'BUSCH_PATH', plugin_dir_path( __FILE__ ) ); // /absolute/path/to/wp-content/plugins/ebca-plugin/
+
+/**
+ * Force ACF to load a Default Value for the "Added at" field for Images in a
+ * Gallery inside the Flexible Content.
+ */
+add_filter( 'acf/load_field/name=added_at', function ( $field ) {
+	$field['default_value'] = date( 'Ymd' );
+
+	return $field;
+} );
 
 /**
  * Enqueue Lightbox Scripts
@@ -100,6 +110,95 @@ function busch_get_collections( array $overrides = [] ): array {
 }
 
 /**
+ * Returns an array of Attachment IDs associated with a Collection.
+ *
+ * @param int $post_id Collection ID.
+ *
+ * @return int[]
+ */
+function busch_get_all_attachment_ids_for_collection( int $post_id ): array {
+
+	$attachment_ids = [];
+
+	if ( ! have_rows( 'flexible_content', $post_id ) ) {
+		return $attachment_ids;
+	}
+
+	while ( have_rows( 'flexible_content', $post_id ) ) {
+
+		the_row();
+
+		if ( get_row_layout() !== 'gallery' ) {
+			continue;
+		}
+
+		$ids = array_map( function ( $image ) {
+			return absint( $image['attachment_id'] );
+		}, get_sub_field( 'images' ) );
+
+		foreach ( $ids as $id ) {
+			$attachment_ids[] = absint( $id );
+		}
+	}
+
+	return array_filter( array_unique( $attachment_ids ) );
+}
+
+/**
+ * Returns an array of Attachment IDs associated with a Collection.
+ *
+ * @param int $post_id Collection ID.
+ *
+ * @return int[]
+ */
+function busch_get_newest_attachment_ids_for_collection( int $post_id, int $days = 30 ): array {
+
+	$attachment_ids = [];
+
+	try {
+		$now = new DateTime( date_i18n( 'Y-m-d' ) );
+	} catch ( Exception $e ) {
+		return $attachment_ids;
+	}
+
+	if ( ! have_rows( 'flexible_content', $post_id ) ) {
+		return $attachment_ids;
+	}
+
+	while ( have_rows( 'flexible_content', $post_id ) ) {
+
+		the_row();
+
+		if ( get_row_layout() !== 'gallery' ) {
+			continue;
+		}
+
+		foreach ( get_sub_field( 'images' ) as $image ) {
+
+			try {
+				/**
+				 * $image[
+				 *      'attachment_id' => 123,
+				 *      'added_at'      => 2023-09-02
+				 * ]
+				 */
+				$image_date = new DateTime( $image['added_at'] );
+			} catch ( Exception $e ) {
+				return $attachment_ids;
+			}
+
+			$days_old = $now->diff( $image_date )->days;
+
+			if ( $days_old <= $days ) {
+				$attachment_ids[] = $image['attachment_id'];
+			}
+		}
+	}
+
+	return array_filter( array_unique( $attachment_ids ) );
+}
+
+/**
  * Return the number of images a Collection contains.
  *
  * @param int $post_id
@@ -107,49 +206,7 @@ function busch_get_collections( array $overrides = [] ): array {
  * @return int
  */
 function busch_get_image_count_for_collection( int $post_id ): int {
-	return count( get_field( 'images', $post_id, false ) );
-}
-
-/**
- * Return an array of Image (attachment) IDs for a collection where
- * the image is newer than $days old.
- *
- * @param int $post_id
- * @param int $days
- *
- * @return array
- */
-function busch_get_new_image_ids_for_collection( int $post_id, int $days = 30 ): array {
-
-	$new_image_ids = [];
-	$images        = get_field( 'images', $post_id );
-
-	if ( empty( $images ) ) {
-		return $new_image_ids;
-	}
-
-	try {
-		$now = new DateTime( date_i18n( 'Y-m-d H:i:s' ) );
-	} catch ( Exception $e ) {
-		return $new_image_ids;
-	}
-
-	foreach ( $images as $image ) {
-
-		try {
-			$image_date = new DateTime( $image->post_date );
-		} catch ( Exception $e ) {
-			continue;
-		}
-
-		$days_old = $now->diff( $image_date )->days;
-
-		if ( $days_old <= $days ) {
-			$new_image_ids[] = $image->ID;
-		}
-	}
-
-	return $new_image_ids;
+	return count( busch_get_all_attachment_ids_for_collection( $post_id ) );
 }
 
 /**
@@ -160,13 +217,76 @@ function busch_get_new_image_ids_for_collection( int $post_id, int $days = 30 ):
  * @return WP_Post[]
  */
 function busch_get_collection_images( int $post_id ): array {
-	return get_posts( [
-		'post__in'       => get_field( 'images', $post_id, false ),
-		'post_type'      => 'attachment',
-		'post_mime_type' => 'image',
-		'posts_per_page' => 99,
-		'orderby'        => 'post__in'
+
+	$images = [];
+	$rows   = get_field( 'images2', $post_id );
+
+	if ( ! $rows ) {
+		return $images;
+	}
+
+	foreach ( $rows as $row ) {
+		if ( $post = get_post( $row['image'] ) ) {
+			$images[] = $post;
+		}
+	}
+
+	return $images;
+}
+
+/**
+ * Returns an array of images (as WP_Post objects) but with some additional properties
+ * available to make formatting in template easier.
+ *
+ * @param int $attachment_ids An array of Attachment IDs.
+ * @param string $size Optional. Size to display (though <img> tag will use srcset)
+ * @param mixed $attr Optional. Additional attributes to pass into wp_get_attachment_image().
+ *
+ * @return WP_Post[]
+ */
+function busch_get_gallery_images( array $attachment_ids, string $size = '2048x2048', $attr = '' ) {
+
+	$images = get_posts( [
+		'include'     => $attachment_ids,
+		'post_type'   => 'attachment',
+		'numberposts' => - 1,
 	] );
+
+	$total_images = count( $images );
+
+	foreach ( $images as $key => $image ) {
+
+		$html = wp_get_attachment_image( $image->ID, $size, false, $attr );
+		$meta = wp_get_attachment_metadata( $image->ID );
+
+		if ( $meta['width'] > $meta['height'] ) {
+			$orientation = 'landscape';
+		} elseif ( $meta['height'] > $meta['width'] ) {
+			$orientation = 'portrait';
+		} else {
+			$orientation = 'square';
+		}
+
+		$images[ $key ]->_html             = $html;
+		$images[ $key ]->_meta             = $meta;
+		$images[ $key ]->_first            = $key === 0;
+		$images[ $key ]->_last             = $key === ( $total_images - 1 );
+		$images[ $key ]->_orientation      = $orientation;
+		$images[ $key ]->_lightbox         = wp_get_attachment_image_url( $image->ID, '2048x2048' );
+		$images[ $key ]->_prev_orientation = null;
+		$images[ $key ]->_next_orientation = null;
+	}
+
+	// Set previous and next image orientation.
+	foreach ( $images as $key => $image ) {
+		$next_key = $key < ( $total_images - 1 ) ? $key + 1 : 0;
+		$prev_key = $key === 0 ? $total_images - 1 : $key - 1;
+
+		$images[ $key ]->_prev_orientation = $images[ $prev_key ]->_orientation;
+		$images[ $key ]->_next_orientation = $images[ $next_key ]->_orientation;
+	}
+
+	return $images;
 }
 
 /**

@@ -2,14 +2,14 @@
 /**
  * Plugin Name: EBCA Plugin
  * Description: My custom plugin
- * Version: 1.0.3
+ * Version: 1.0.4
  * Author: eb
  * Text Domain: busch
  */
 
 defined( 'ABSPATH' ) || exit;
 
-const BUSCH_VERSION = '1.0.3';
+const BUSCH_VERSION = '1.0.4';
 
 define( 'BUSCH_URL', plugin_dir_url( __FILE__ ) ); // https://example.com/wp-content/plugins/ebca-plugin/
 define( 'BUSCH_PATH', plugin_dir_path( __FILE__ ) ); // /absolute/path/to/wp-content/plugins/ebca-plugin/
@@ -19,7 +19,7 @@ define( 'BUSCH_PATH', plugin_dir_path( __FILE__ ) ); // /absolute/path/to/wp-con
  * Gallery inside the Flexible Content.
  */
 add_filter( 'acf/load_field/name=added_at', function ( $field ) {
-	$field['default_value'] = date( 'Ymd' );
+	$field['default_value'] = date_i18n( 'Ymd' );
 
 	return $field;
 } );

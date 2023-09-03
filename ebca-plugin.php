@@ -2,14 +2,14 @@
 /**
  * Plugin Name: EBCA Plugin
  * Description: My custom plugin
- * Version: 1.0.4
+ * Version: 1.0.5
  * Author: eb
  * Text Domain: busch
  */
 
 defined( 'ABSPATH' ) || exit;
 
-const BUSCH_VERSION = '1.0.4';
+const BUSCH_VERSION = '1.0.5';
 
 define( 'BUSCH_URL', plugin_dir_url( __FILE__ ) ); // https://example.com/wp-content/plugins/ebca-plugin/
 define( 'BUSCH_PATH', plugin_dir_path( __FILE__ ) ); // /absolute/path/to/wp-content/plugins/ebca-plugin/
@@ -247,9 +247,10 @@ function busch_get_collection_images( int $post_id ): array {
 function busch_get_gallery_images( array $attachment_ids, string $size = '2048x2048', $attr = '' ) {
 
 	$images = get_posts( [
-		'include'     => $attachment_ids,
+		'post__in'    => $attachment_ids,
 		'post_type'   => 'attachment',
 		'numberposts' => - 1,
+		'orderby'     => 'post__in',
 	] );
 
 	$total_images = count( $images );

@@ -2,14 +2,14 @@
 /**
  * Plugin Name: EBCA Plugin
  * Description: My custom plugin
- * Version: 1.0.5
+ * Version: 1.0.6
  * Author: eb
  * Text Domain: busch
  */
 
 defined( 'ABSPATH' ) || exit;
 
-const BUSCH_VERSION = '1.0.5';
+const BUSCH_VERSION = '1.0.6';
 
 define( 'BUSCH_URL', plugin_dir_url( __FILE__ ) ); // https://example.com/wp-content/plugins/ebca-plugin/
 define( 'BUSCH_PATH', plugin_dir_path( __FILE__ ) ); // /absolute/path/to/wp-content/plugins/ebca-plugin/
@@ -451,3 +451,18 @@ function busch_get_next_collection( int $current_collection_id ): ?WP_Post {
 
 	return busch_get_next_object( $treatments, $current_collection_id );
 }
+
+/**
+ * Disable admin bar on homepage is user is logged in.
+ *
+ * @param bool $show_admin_bar
+ *
+ * @return bool
+ */
+add_filter( 'show_admin_bar', function ( bool $show_admin_bar ) {
+	if ( ! is_user_logged_in() ) {
+		return $show_admin_bar;
+	}
+
+	return ! is_front_page();
+} );

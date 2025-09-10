@@ -2,14 +2,14 @@
 /**
  * Plugin Name: EBCA Plugin
  * Description: My custom plugin
- * Version: 1.0.7
+ * Version: 1.0.8
  * Author: eb
  * Text Domain: busch
  */
 
 defined( 'ABSPATH' ) || exit;
 
-const BUSCH_VERSION = '1.0.7';
+const BUSCH_VERSION = '1.0.8';
 
 define( 'BUSCH_URL', plugin_dir_url( __FILE__ ) ); // https://example.com/wp-content/plugins/ebca-plugin/
 define( 'BUSCH_PATH', plugin_dir_path( __FILE__ ) ); // /absolute/path/to/wp-content/plugins/ebca-plugin/
@@ -471,9 +471,14 @@ add_filter( 'show_admin_bar', function ( bool $show_admin_bar ) {
  * Email shortcode handler that creates an obfuscated email link or display element.
  *
  * Creates either a clickable mailto link (when link="1") or a plain text span element
- * (when link="0") with anti-spam protection using WordPress's antispambot() function.
+ * (when link="0") with anti-spam protection using the custom busch_antispambot() function.
  * All email addresses and text content are obfuscated to help prevent email harvesting
- * by spambots.
+ * by spambots. The output is wrapped in JavaScript to provide additional obfuscation.
+ *
+ * See:
+ *
+ * https://spencermortensen.com/articles/email-obfuscation/#link-concatenation
+ * https://spencermortensen.com/articles/email-obfuscation/#text-concatenation
  *
  * @param array $atts {
  *     Shortcode attributes. Default values are provided for all attributes.
@@ -487,9 +492,13 @@ add_filter( 'show_admin_bar', function ( bool $show_admin_bar ) {
  * @type string $class CSS class(es) to apply to the element. Default empty string.
  * @type string $title Title attribute for the element (tooltip text).
  *                           Default 'Send me an email'.
+ * @type string $target Target attribute for the link (only applies when link="1").
+ *                           Default '_blank'.
+ * @type string $rel Rel attribute for the link (only applies when link="1").
+ *                           Default 'noopener'.
  * }
  *
- * @return string The formatted HTML output as either an <a> or <span> element.
+ * @return string JavaScript-wrapped HTML output as either an <a> or <span> element.
  *
  * @since 1.0.7
  *
@@ -504,8 +513,12 @@ add_filter( 'show_admin_bar', function ( bool $show_admin_bar ) {
  *
  * @example Custom display text with styling:
  * [email text="Contact Us" class="btn btn-primary" title="Send us a message"]
+ *
+ * @example With custom target and rel attributes:
+ * [email address="contact@example.com" target="_self" rel="nofollow noopener"]
  */
-add_shortcode( 'email', function ( $atts ) {
+
+add_shortcode( 'email', function ( $atts, $content = null ) {
 
 	$defaults = [
 		'address' => get_field( 'contact_email', 'option' ),
@@ -513,6 +526,8 @@ add_shortcode( 'email', function ( $atts ) {
 		'text'    => '',
 		'class'   => '',
 		'title'   => 'Send me an email',
+		'target'  => '_blank',
+		'rel'     => 'noopener',
 	];
 
 	$attributes = shortcode_atts( $defaults, $atts );
@@ -522,24 +537,83 @@ add_shortcode( 'email', function ( $atts ) {
 	$text    = trim( $attributes['text'] );
 	$class   = trim( $attributes['class'] );
 	$title   = trim( $attributes['title'] );
+	$target  = trim( $attributes['target'] );
+	$rel     = trim( $attributes['rel'] );
 	$mailto  = 'mailto:' . $email;
 
 	if ( $is_link ) {
-		$tag    = 'a';
-		$anchor = ! empty( $text ) ? $text : antispambot( $email );
-		$href   = 'href="' . antispambot( $mailto ) . '"';
+		$tag = 'a';
+		if ( ! is_null( $content ) ) {
+			$anchor = $content; // UNESCAPED DATA!
+		} elseif ( ! empty( $text ) ) {
+			$anchor = esc_html( $text );
+		} else {
+			$anchor = implode( "'+'", busch_antispambot( $email ) );
+		}
+		$href = 'href="' . implode( "'+'", busch_antispambot( $mailto ) ) . '"';
 	} else {
 		$tag    = 'span';
-		$anchor = antispambot( $email );
+		$anchor = implode( "'+'", busch_antispambot( $email ) );
 		$href   = '';
 	}
 
 	$options   = [];
 	$options[] = $href;
-	$options[] = ! empty( $title ) ? 'title="' . antispambot( $title ) . '"' : '';
+	$options[] = ! empty( $title ) ? 'title="' . esc_attr( $title ) . '"' : '';
 	$options[] = ! empty( $class ) ? 'class="' . esc_attr( $class ) . '"' : '';
+	$options[] = ! empty( $target ) ? 'target="' . esc_attr( $target ) . '"' : '';
+	$options[] = ! empty( $rel ) ? 'rel="' . esc_attr( $rel ) . '"' : '';
 
-	$format = '<%1$s %2$s>%3$s</%1$s>';
+	$format = "<script>document.write('";
+	$format .= '<%1$s %2$s>%3$s</%1$s>';
+	$format .= "');</script>";
 
-	return sprintf( $format, $tag, trim( implode( ' ', array_filter( $options ) ) ), $anchor );
+	return sprintf(
+		$format,
+		$tag,
+		trim( implode( ' ', array_filter( $options ) ) ),
+		$anchor
+	);
 } );
+
+/**
+ * Convert email addresses to anti-spam format using HTML entity encoding.
+ *
+ * This function randomly converts each character in an email address to either
+ * its HTML entity equivalent (&#xxx;) or leaves it as-is. The @ symbol is always
+ * converted to &#64; for additional protection. This obfuscation technique helps
+ * prevent email harvesting by automated spambots while keeping the email readable
+ * in browsers.
+ *
+ * The function is used by the email shortcode to create obfuscated email addresses
+ * that are then concatenated with JavaScript to create functional mailto links or
+ * display elements.
+ *
+ * @param string $email_address The email address to obfuscate.
+ *
+ * @return array An array of characters and HTML entities representing the obfuscated email.
+ *               Each element is either the original character or its HTML entity equivalent.
+ *
+ * @since 1.0.7
+ *
+ * @example
+ * $obfuscated = busch_antispambot('test@example.com');
+ * // Returns something like: ['t', '&#101;', 's', '&#116;', '&#64;', 'e', '&#120;', ...]
+ */
+function busch_antispambot( $email_address ): array {
+
+	$email_no_spam_address = [];
+
+	for ( $i = 0, $len = strlen( $email_address ); $i < $len; $i ++ ) {
+
+		$j = rand( 0, 1 );
+
+		if ( 0 === $j ) {
+			$email_no_spam_address[] = '&#' . ord( $email_address[ $i ] ) . ';';
+		} elseif ( 1 === $j ) {
+			$email_no_spam_address[] = $email_address[ $i ];
+		}
+	}
+
+	return str_replace( '@', '&#64;', $email_no_spam_address );
+}

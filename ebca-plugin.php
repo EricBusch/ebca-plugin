@@ -594,7 +594,7 @@ add_shortcode( 'email', function ( $atts, $content = null ) {
  * @return array An array of characters and HTML entities representing the obfuscated email.
  *               Each element is either the original character or its HTML entity equivalent.
  *
- * @since 1.0.7
+ * @since 1.0.8
  *
  * @example
  * $obfuscated = busch_antispambot('test@example.com');

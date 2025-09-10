@@ -2,14 +2,14 @@
 /**
  * Plugin Name: EBCA Plugin
  * Description: My custom plugin
- * Version: 1.0.8
+ * Version: 1.0.9
  * Author: eb
  * Text Domain: busch
  */
 
 defined( 'ABSPATH' ) || exit;
 
-const BUSCH_VERSION = '1.0.8';
+const BUSCH_VERSION = '1.0.9';
 
 define( 'BUSCH_URL', plugin_dir_url( __FILE__ ) ); // https://example.com/wp-content/plugins/ebca-plugin/
 define( 'BUSCH_PATH', plugin_dir_path( __FILE__ ) ); // /absolute/path/to/wp-content/plugins/ebca-plugin/
@@ -517,7 +517,6 @@ add_filter( 'show_admin_bar', function ( bool $show_admin_bar ) {
  * @example With custom target and rel attributes:
  * [email address="contact@example.com" target="_self" rel="nofollow noopener"]
  */
-
 add_shortcode( 'email', function ( $atts, $content = null ) {
 
 	$defaults = [
@@ -543,7 +542,7 @@ add_shortcode( 'email', function ( $atts, $content = null ) {
 
 	if ( $is_link ) {
 		$tag = 'a';
-		if ( ! is_null( $content ) ) {
+		if ( ! empty( $content ) ) {
 			$anchor = $content; // UNESCAPED DATA!
 		} elseif ( ! empty( $text ) ) {
 			$anchor = esc_html( $text );

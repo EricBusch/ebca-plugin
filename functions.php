@@ -419,3 +419,26 @@ function ebca_antispambot( string $email_address ): array {
 
 	return str_replace( '@', '&#64;', $email_no_spam_address );
 }
+
+
+/**
+ * Convert an email address to a URL format.
+ *
+ * Takes an email address and converts it to a URL by extracting the username
+ * and domain parts, then formatting them as https://{domain}/{username}.
+ *
+ * @param string $email The email address to convert to URL format.
+ *
+ * @return string The formatted URL string in the format https://{domain}/{username}.
+ *
+ * @since 1.0.11
+ *
+ * @example
+ * $url = ebca_convert_email_to_url('john@example.com');
+ * // Returns: 'https://example.com/john'
+ */
+function ebca_convert_email_to_url( string $email ): string {
+	list( $username, $domain ) = explode( '@', $email, 2 );
+
+	return sprintf( 'https://%s/%s', $domain, $username );
+}

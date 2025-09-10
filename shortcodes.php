@@ -65,8 +65,8 @@ function ebca_email_shortcode( $atts, $content = null ): string {
 		'text'    => '',
 		'class'   => '',
 		'title'   => 'Send me an email',
-		'target'  => '_blank',
-		'rel'     => 'noopener',
+		'target'  => '',
+		'rel'     => 'nofollow noindex',
 	];
 
 	$attributes = shortcode_atts( $defaults, $atts );
@@ -78,7 +78,6 @@ function ebca_email_shortcode( $atts, $content = null ): string {
 	$title   = trim( $attributes['title'] );
 	$target  = trim( $attributes['target'] );
 	$rel     = trim( $attributes['rel'] );
-	$mailto  = 'mailto:' . $email;
 
 	if ( $is_link ) {
 		$tag = 'a';
@@ -87,25 +86,21 @@ function ebca_email_shortcode( $atts, $content = null ): string {
 		} elseif ( ! empty( $text ) ) {
 			$anchor = esc_html( $text );
 		} else {
-			$anchor = implode( "'+'", ebca_antispambot( $email ) );
+			$anchor = esc_html( $email );
 		}
-		$href = 'href="' . implode( "'+'", ebca_antispambot( $mailto ) ) . '"';
 	} else {
 		$tag    = 'span';
-		$anchor = implode( "'+'", ebca_antispambot( $email ) );
-		$href   = '';
+		$anchor = esc_html( $email );
 	}
 
 	$options   = [];
-	$options[] = $href;
 	$options[] = ! empty( $title ) ? 'title="' . esc_attr( $title ) . '"' : '';
-	$options[] = ! empty( $class ) ? 'class="' . esc_attr( $class ) . '"' : '';
+	$options[] = ! empty( $class ) ? 'class="ebca-eml ' . esc_attr( $class ) . '"' : 'class="ebca-eml"';
 	$options[] = ! empty( $target ) ? 'target="' . esc_attr( $target ) . '"' : '';
 	$options[] = ! empty( $rel ) ? 'rel="' . esc_attr( $rel ) . '"' : '';
+	$options[] = 'data-eml="' . esc_attr( ebca_convert_email_to_url( $email ) ) . '"';
 
-	$format = "<script>document.write('";
-	$format .= '<%1$s %2$s>%3$s</%1$s>';
-	$format .= "');</script>";
+	$format = '<%1$s %2$s>%3$s</%1$s>';
 
 	return sprintf(
 		$format,

@@ -215,7 +215,7 @@ function ebca_get_gallery_images( array $attachment_ids, string $size = '2048x20
 
 	foreach ( $images as $key => $image ) {
 
-		$html = wp_get_attachment_image( $image->ID, $size, false, $attr );
+//		$html = wp_get_attachment_image( $image->ID, $size, false, $attr ); Replaced this with the manual code below.
 		$meta = wp_get_attachment_metadata( $image->ID );
 
 		if ( $meta['width'] > $meta['height'] ) {
@@ -226,7 +226,32 @@ function ebca_get_gallery_images( array $attachment_ids, string $size = '2048x20
 			$orientation = 'square';
 		}
 
-		$images[ $key ]->_html             = $html;
+		// Build manually so that we can lazy load and use LQIP (Low-Quality Image Placeholder)
+		$alt    = get_post_meta( $image->ID, '_wp_attachment_image_alt', true );
+		$lqip   = wp_get_attachment_image_src( $image->ID, 'lqip' );
+		$full   = wp_get_attachment_image_src( $image->ID, $size );
+		$srcset = wp_get_attachment_image_srcset( $image->ID, $size );
+		$sizes  = '(max-width: 800px) 100vw, 800px';
+
+		$attributes                = [];
+		$attributes['class']       = 'lazy lqip ' . ( $attr['class'] ?? '' );
+		$attributes['src']         = esc_url( $lqip[0] );
+		$attributes['data-src']    = esc_url( $full[0] );
+		$attributes['data-srcset'] = esc_attr( $srcset );
+		$attributes['sizes']       = esc_attr( $sizes );
+		$attributes['alt']         = esc_attr( $alt );
+		$attributes['width']       = esc_attr( $full[1] );
+		$attributes['height']      = esc_attr( $full[2] );
+		$attributes['decoding']    = 'async';
+
+		$attributes_string = '';
+		foreach ( $attributes as $k => $v ) {
+			if ( ! empty( $v ) ) {
+				$attributes_string .= $k . '="' . esc_attr( $v ) . '" ';
+			}
+		}
+
+		$images[ $key ]->_html             = sprintf( '<img %s/>', $attributes_string );
 		$images[ $key ]->_meta             = $meta;
 		$images[ $key ]->_first            = $key === 0;
 		$images[ $key ]->_last             = $key === ( $total_images - 1 );

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: EBCA Plugin
  * Description: My custom plugin
- * Version: 1.0.11
+ * Version: 1.0.12
  * Author: eb
  * Text Domain: ebca
  */
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Define Version and Paths
  */
-const EBCA_VERSION     = '1.0.11';
+const EBCA_VERSION     = '1.0.12';
 const EBCA_PLUGIN_FILE = __FILE__; // /absolute/path/to/wp-content/plugins/ebca-plugin/ebca-plugin.php
 define( 'EBCA_URL', plugin_dir_url( __FILE__ ) ); // https://example.com/wp-content/plugins/ebca-plugin/
 define( 'EBCA_PATH', plugin_dir_path( __FILE__ ) ); // /absolute/path/to/wp-content/plugins/ebca-plugin/
@@ -37,3 +37,12 @@ require_once dirname( EBCA_PLUGIN_FILE ) . '/actions.php';
 if ( function_exists( 'acf_add_options_page' ) ) {
 	acf_add_options_page();
 }
+
+/**
+ * LQIP (Low-Quality Image Placeholder)
+ *
+ * This is for showing a blurry version of an image before it fully loads.
+ *
+ * @since 1.0.12
+ */
+add_image_size( 'lqip', 20, 20, false );

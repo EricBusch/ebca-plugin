@@ -215,8 +215,10 @@ function ebca_get_gallery_images( array $attachment_ids, string $size = '2048x20
 
 	foreach ( $images as $key => $image ) {
 
-//		$html = wp_get_attachment_image( $image->ID, $size, false, $attr ); Replaced this with the manual code below.
+//		$html = wp_get_attachment_image( $image->ID, $size, false, $attr ); //Replaced this with the manual code below.
 		$meta = wp_get_attachment_metadata( $image->ID );
+
+
 
 		if ( $meta['width'] > $meta['height'] ) {
 			$orientation = 'landscape';
@@ -231,7 +233,7 @@ function ebca_get_gallery_images( array $attachment_ids, string $size = '2048x20
 		$lqip   = wp_get_attachment_image_src( $image->ID, 'lqip' );
 		$full   = wp_get_attachment_image_src( $image->ID, $size );
 		$srcset = wp_get_attachment_image_srcset( $image->ID, $size );
-		$sizes  = '(max-width: 800px) 100vw, 800px';
+		$sizes  = 'auto, (max-width: '. $meta['width'] . 'px) 100vw, ' . $meta['width'] . 'px';
 
 		$attributes                = [];
 		$attributes['class']       = 'lazy lqip ' . ( $attr['class'] ?? '' );

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: EBCA Plugin
  * Description: My custom plugin
- * Version: 1.0.12
+ * Version: 1.0.13
  * Author: eb
  * Text Domain: ebca
  */
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Define Version and Paths
  */
-const EBCA_VERSION     = '1.0.12';
+const EBCA_VERSION     = '1.0.13';
 const EBCA_PLUGIN_FILE = __FILE__; // /absolute/path/to/wp-content/plugins/ebca-plugin/ebca-plugin.php
 define( 'EBCA_URL', plugin_dir_url( __FILE__ ) ); // https://example.com/wp-content/plugins/ebca-plugin/
 define( 'EBCA_PATH', plugin_dir_path( __FILE__ ) ); // /absolute/path/to/wp-content/plugins/ebca-plugin/

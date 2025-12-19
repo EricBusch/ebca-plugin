@@ -218,6 +218,8 @@ function ebca_get_gallery_images( array $attachment_ids, string $size = '2048x20
 
 		$i ++;
 
+		$load_lqip = $i > 3;
+
 //		$html = wp_get_attachment_image( $image->ID, $size, false, $attr ); //Replaced this with the manual code below.
 		$meta = wp_get_attachment_metadata( $image->ID );
 
@@ -235,11 +237,11 @@ function ebca_get_gallery_images( array $attachment_ids, string $size = '2048x20
 		$full   = wp_get_attachment_image_src( $image->ID, $size );
 		$srcset = wp_get_attachment_image_srcset( $image->ID, $size );
 		$sizes  = 'auto, (max-width: ' . $meta['width'] . 'px) 100vw, ' . $meta['width'] . 'px';
-		$lazy   = $i > 3 ? 'lazy lqip ' : ''; // Only lazy load images if they appear more than 3 images down on the page.
+		$lazy   = $load_lqip ? 'lazy lqip ' : ''; // Only lazy load images if they appear more than 3 images down on the page.
 
 		$attributes                = [];
 		$attributes['class']       = $lazy . ( $attr['class'] ?? '' );
-		$attributes['src']         = esc_url( $lqip[0] );
+		$attributes['src']         = $load_lqip ? esc_url( $lqip[0] ) : esc_url( $full[0] );
 		$attributes['data-src']    = esc_url( $full[0] );
 		$attributes['data-srcset'] = esc_attr( $srcset );
 		$attributes['sizes']       = esc_attr( $sizes );

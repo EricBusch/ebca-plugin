@@ -20,7 +20,6 @@ function ebca_load_scripts(): void {
 	wp_enqueue_script( 'busch-fslb-js', EBCA_URL . 'js/fslightbox/custom.js', [ 'fslb-js' ], EBCA_VERSION, true );
 	wp_enqueue_script( 'ebca-email-obfuscation', EBCA_URL . 'js/ebca-email-obfuscation.js', [], EBCA_VERSION, true );
 	wp_enqueue_script( 'ebca-lazy', EBCA_URL . 'js/lazy.js', [], EBCA_VERSION, true );
-
 }
 
 add_action( 'wp_enqueue_scripts', 'ebca_load_scripts' );

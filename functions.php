@@ -202,7 +202,7 @@ function ebca_get_collection_images( int $post_id ): array {
  *
  * @return WP_Post[] Array of WP_Post objects with additional properties for template formatting.
  */
-function ebca_get_gallery_images( array $attachment_ids, string $size = '2048x2048', string|array $attr = '' ) {
+function ebca_get_gallery_images( array $attachment_ids, string $size = '2048x2048', string|array $attr = '' ): array {
 
 	$images = get_posts( [
 		'post__in'    => $attachment_ids,
@@ -213,12 +213,13 @@ function ebca_get_gallery_images( array $attachment_ids, string $size = '2048x20
 
 	$total_images = count( $images );
 
+	$i = 0;
 	foreach ( $images as $key => $image ) {
+
+		$i ++;
 
 //		$html = wp_get_attachment_image( $image->ID, $size, false, $attr ); //Replaced this with the manual code below.
 		$meta = wp_get_attachment_metadata( $image->ID );
-
-
 
 		if ( $meta['width'] > $meta['height'] ) {
 			$orientation = 'landscape';
@@ -233,10 +234,11 @@ function ebca_get_gallery_images( array $attachment_ids, string $size = '2048x20
 		$lqip   = wp_get_attachment_image_src( $image->ID, 'lqip' );
 		$full   = wp_get_attachment_image_src( $image->ID, $size );
 		$srcset = wp_get_attachment_image_srcset( $image->ID, $size );
-		$sizes  = 'auto, (max-width: '. $meta['width'] . 'px) 100vw, ' . $meta['width'] . 'px';
+		$sizes  = 'auto, (max-width: ' . $meta['width'] . 'px) 100vw, ' . $meta['width'] . 'px';
+		$lazy   = $i > 3 ? 'lazy lqip ' : ''; // Only lazy load images if they appear more than 3 images down on the page.
 
 		$attributes                = [];
-		$attributes['class']       = 'lazy lqip ' . ( $attr['class'] ?? '' );
+		$attributes['class']       = $lazy . ( $attr['class'] ?? '' );
 		$attributes['src']         = esc_url( $lqip[0] );
 		$attributes['data-src']    = esc_url( $full[0] );
 		$attributes['data-srcset'] = esc_attr( $srcset );

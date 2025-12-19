@@ -90,3 +90,31 @@ function ebca_disable_admin_bar_on_homepage( bool $show_admin_bar ): bool {
 }
 
 add_filter( 'show_admin_bar', 'ebca_disable_admin_bar_on_homepage' );
+
+/**
+ * Add theme directories to skip when generating a static site.
+ *
+ * Hooks into the 'ss_skip_crawl_theme_directories' filter to append directories
+ * that should be ignored by the static site generator (e.g., development-only
+ * folders such as 'node_modules').
+ *
+ * @param array $directories Array of theme subdirectories to skip during crawl.
+ *
+ * @return array Modified array of directories to skip.
+ * @since 1.0.0
+ */
+function ebca_add_directories_to_skip_for_static_site( array $directories ): array {
+	$directories[] = 'node_modules';
+
+	return $directories;
+}
+
+add_filter( 'ss_skip_crawl_theme_directories', 'ebca_add_directories_to_skip_for_static_site' );
+
+
+//add_filter( 'ss_incompatible_plugins', function ( $plugins ) {
+//	unset( $plugins['siteorigin-panels'] );
+//
+//	return $plugins;
+//} );
+
